@@ -2,13 +2,8 @@ import { defineStore } from "pinia";
 
 export const useTaskStore = defineStore("taskStore", {
   state: () => ({
-    tasks: [
-      //generate task objects with id, title and isFav properties
-      { id: 1, title: "Task 1", isFav: false },
-      { id: 2, title: "Task 2", isFav: true },
-      { id: 3, title: "Task 3", isFav: false },
-    ],
-    name: "Yoshi",
+    tasks: [],
+    isLoading: false,
   }),
   getters: {
     //create a getter function titled favs to return all tasks with isFav property set to true, using 'this' object
@@ -24,15 +19,54 @@ export const useTaskStore = defineStore("taskStore", {
     },
   },
   actions: {
-    addTask(task) {
-      this.tasks.push({ id: this.tasks.length + 1, title: task, isFav: false });
+    async getTasks() {
+      this.isLoading = true;
+      const response = await fetch("http://localhost:3000/tasks");
+      const data = await response.json();
+      this.tasks = data;
+      this.isLoading = false;
     },
-    deleteTask(task) {
+    async addTask(task) {
+      const taskObj = { id: this.tasks.length + 1, title: task, isFav: false };
+      this.tasks.push(taskObj);
+
+      const response = await fetch("http://localhost:3000/tasks", {
+        method: "POST",
+        body: JSON.stringify(taskObj),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.error) {
+        console.log(response.error);
+      }
+    },
+    async deleteTask(task) {
       this.tasks = this.tasks.filter((t) => t.id !== task.id);
+
+      const response = await fetch(`http://localhost:3000/tasks/${task.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.error) {
+        console.log(response.error);
+      }
     },
-    favTask(task) {
+    async favTask(task) {
       const filteredTask = this.tasks.find((t) => t.id === task.id);
       filteredTask.isFav = !filteredTask.isFav;
+
+      const response = await fetch(
+        `http://localhost:3000/tasks/${filteredTask.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isFav: filteredTask.isFav }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (response.error) {
+        console.log(response.error);
+      }
     },
   },
 });
